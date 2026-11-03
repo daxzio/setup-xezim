@@ -1,0 +1,39 @@
+name: setup-xezim
+description: Install a prebuilt xezim binary
+branding:
+  color: green
+  icon: download
+inputs:
+  version:
+    description: "xezim release to install (for example 0.11.4). Defaults to the latest package release."
+    required: false
+    default: latest
+runs:
+  using: composite
+  steps:
+    - name: Install xezim
+      shell: bash
+      run: |
+        set -euo pipefail
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        if [ "${ID:-}" != "ubuntu" ] || [ "${VERSION_ID:-}" != "24.04" ]; then
+          echo "setup-xezim supports ubuntu-24.04 only (this runner is ${ID:-unknown} ${VERSION_ID:-unknown})" >&2
+          exit 1
+        fi
+        version="${{ inputs.version }}"
+        asset="xezim-ubuntu-24.04.tar.gz"
+        if [ "$version" = "latest" ]; then
+          url="https://github.com/daxzio/xezim-package/releases/latest/download/${asset}"
+        else
+          url="https://github.com/daxzio/xezim-package/releases/download/${version}/${asset}"
+        fi
+        dest="${RUNNER_TEMP}/xezim"
+        rm -rf "$dest"
+        mkdir -p "$dest"
+        curl -fsSL "$url" | tar -xz -C "$dest"
+        if [ ! -x "$dest/bin/xezim" ]; then
+          echo "archive from ${url} did not contain bin/xezim" >&2
+          exit 1
+        fi
+        echo "$dest/bin" >> "$GITHUB_PATH"
