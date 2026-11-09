@@ -17,9 +17,9 @@ jobs:
       - name: Setup xezim
         uses: ./
         with:
-          version: "0.11.4"
+          version: "0.11.5"
 
       - name: Report version
         run: |
           xezim -V
-          xezim -V | grep -F "xezim version 0.11.4"
+          xezim -V | grep -F "xezim version 0.11.5"
