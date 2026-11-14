@@ -21,5 +21,5 @@ Pin a release with `version`. The default is the latest package release.
 ```yaml
 - uses: daxzio/setup-xezim@v1
   with:
-    version: "0.11.5"
+    version: "0.11.6"
 ```
