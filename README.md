@@ -23,3 +23,7 @@ Pin a release with `version`. The default is the latest package release.
   with:
     version: "0.11.7"
 ```
+
+## New package releases
+
+Downstream repos can re-run CI when **xezim-package** marks a release **Latest** without pinning `version` here. The package repo notifies **this** repository; we fan out to registered subscribers. See **[SUBSCRIBING.md](./SUBSCRIBING.md)**.

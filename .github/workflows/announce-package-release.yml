@@ -1,0 +1,66 @@
+name: Announce xezim package release
+
+# xezim-package posts repository_dispatch here after a new Latest release.
+# This workflow fans out the same payload to repos listed in xezim-release-subscribers.json.
+
+on:
+  repository_dispatch:
+    types: [xezim-package-published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Package release tag (for dry-run / manual fan-out)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  notify-subscribers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release payload
+        id: release
+        run: |
+          set -euo pipefail
+          tag="${{ github.event.client_payload.tag }}"
+          if [ -z "$tag" ]; then
+            tag="${{ inputs.tag }}"
+          fi
+          if [ -z "$tag" ]; then
+            echo "No tag in client_payload or workflow_dispatch input." >&2
+            exit 1
+          fi
+          tool="${{ github.event.client_payload.tool }}"
+          if [ -z "$tool" ]; then
+            tool="xezim"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "tool=$tool" >> "$GITHUB_OUTPUT"
+
+      - name: Fan out to subscribers
+        env:
+          GH_TOKEN: ${{ secrets.SUBSCRIBER_DISPATCH }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TOOL: ${{ steps.release.outputs.tool }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "SUBSCRIBER_DISPATCH not set; skip fan-out." >&2
+            exit 0
+          fi
+          payload="$(jq -nc \
+            --arg tag "$TAG" \
+            --arg tool "$TOOL" \
+            '{tool:$tool, tag:$tag, source:"daxzio/xezim-package"}')"
+          jq -c '.[]' .github/xezim-release-subscribers.json | while read -r entry; do
+            repo="$(echo "$entry" | jq -r .repo)"
+            event="$(echo "$entry" | jq -r .event_type)"
+            echo "Dispatching $event -> $repo"
+            gh api --method POST "repos/${repo}/dispatches" \
+              -f "event_type=${event}" \
+              --raw-field "client_payload=${payload}"
+          done
