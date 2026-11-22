@@ -5,7 +5,7 @@ branding:
   icon: download
 inputs:
   version:
-    description: "xezim release to install (for example 0.11.6). Defaults to the latest package release."
+    description: "xezim release to install (for example 0.11.7). Defaults to the latest package release."
     required: false
     default: latest
   ubuntu-version:
