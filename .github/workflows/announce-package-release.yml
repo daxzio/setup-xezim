@@ -52,15 +52,14 @@ jobs:
             echo "SUBSCRIBER_DISPATCH not set; skip fan-out." >&2
             exit 0
           fi
-          payload="$(jq -nc \
-            --arg tag "$TAG" \
-            --arg tool "$TOOL" \
-            '{tool:$tool, tag:$tag, source:"daxzio/xezim-package"}')"
           jq -c '.[]' .github/xezim-release-subscribers.json | while read -r entry; do
             repo="$(echo "$entry" | jq -r .repo)"
             event="$(echo "$entry" | jq -r .event_type)"
             echo "Dispatching $event -> $repo"
-            gh api --method POST "repos/${repo}/dispatches" \
-              -f "event_type=${event}" \
-              --raw-field "client_payload=${payload}"
+            jq -nc \
+              --arg event "$event" \
+              --arg tag "$TAG" \
+              --arg tool "$TOOL" \
+              '{event_type:$event, client_payload:{tool:$tool, tag:$tag, source:"daxzio/xezim-package"}}' \
+              | gh api --method POST "repos/${repo}/dispatches" --input -
           done
